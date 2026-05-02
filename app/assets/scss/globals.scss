@@ -315,3 +315,8 @@
 @import "partials/map";
 @import "partials/shepherd";
 
+// Flatpickr popup precisa ficar acima de Dialogs (z-9999)
+.flatpickr-calendar {
+  z-index: 10001 !important;
+}
+

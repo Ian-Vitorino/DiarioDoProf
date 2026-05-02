@@ -1,0 +1,221 @@
+"use client";
+
+import * as React from "react";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { setNota } from "@/actions/notas";
+
+interface Aluno {
+  id: string;
+  nome: string;
+}
+
+interface Atividade {
+  id: string;
+  nome: string;
+  valorMaximo: number;
+}
+
+interface Nota {
+  id: string;
+  valor: number;
+  alunoId: string;
+  atividadeId: string;
+}
+
+type Modo = "MEDIA" | "SOMA";
+
+interface Props {
+  alunos: Aluno[];
+  atividades: Atividade[];
+  notas: Nota[];
+  modoCalculo: Modo;
+}
+
+const cellKey = (alunoId: string, atividadeId: string) =>
+  `${alunoId}_${atividadeId}`;
+
+const VALID_INPUT = /^$|^\d+([.,]\d?)?$/;
+
+function parseNota(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const num = parseFloat(trimmed.replace(",", "."));
+  if (Number.isNaN(num)) return null;
+  return Math.round(num * 10) / 10;
+}
+
+function effectiveCap(modo: Modo, atividade: Atividade): number {
+  return modo === "MEDIA" ? 10 : atividade.valorMaximo;
+}
+
+export function NotasGrid({ alunos, atividades, notas, modoCalculo }: Props) {
+  const initialValues = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const n of notas) {
+      map[cellKey(n.alunoId, n.atividadeId)] = String(n.valor);
+    }
+    return map;
+  }, [notas]);
+
+  const [values, setValues] = React.useState<Record<string, string>>(initialValues);
+  const [saving, setSaving] = React.useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    setValues(initialValues);
+  }, [initialValues]);
+
+  if (atividades.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-default-700 mb-2 text-lg font-medium">
+          Sem atividades neste bimestre
+        </p>
+        <p className="text-sm text-default-500">
+          Crie atividades na aba <strong>Atividades</strong> da turma.
+        </p>
+      </Card>
+    );
+  }
+
+  const handleChange = (key: string, raw: string, cap: number) => {
+    if (!VALID_INPUT.test(raw)) return;
+    if (raw !== "") {
+      const parsed = parseNota(raw);
+      if (parsed !== null && parsed > cap) return;
+    }
+    setValues((v) => ({ ...v, [key]: raw }));
+  };
+
+  const handleBlur = async (
+    alunoId: string,
+    atividadeId: string,
+    cap: number
+  ) => {
+    const key = cellKey(alunoId, atividadeId);
+    const raw = values[key] ?? "";
+    const initial = initialValues[key] ?? "";
+    if (raw === initial) return;
+
+    const parsed = parseNota(raw);
+    if (parsed !== null && (parsed < 0 || parsed > cap)) {
+      toast.error(`Nota deve estar entre 0 e ${cap}`);
+      setValues((v) => ({ ...v, [key]: initial }));
+      return;
+    }
+
+    setSaving((s) => ({ ...s, [key]: true }));
+    try {
+      await setNota(alunoId, atividadeId, parsed);
+      setValues((v) => ({ ...v, [key]: parsed === null ? "" : String(parsed) }));
+    } catch (err) {
+      toast.error((err as Error)?.message ?? "Erro ao salvar nota");
+      setValues((v) => ({ ...v, [key]: initial }));
+    } finally {
+      setSaving((s) => ({ ...s, [key]: false }));
+    }
+  };
+
+  // MEDIA: simple average (cap efetivo = 10) → final 0–10
+  // SOMA: sum, capped at 10 for display
+  const calcularResultado = (alunoId: string): string => {
+    if (atividades.length === 0) return "0.0";
+
+    if (modoCalculo === "SOMA") {
+      let sum = 0;
+      for (const a of atividades) {
+        const raw = values[cellKey(alunoId, a.id)] ?? "";
+        sum += parseNota(raw) ?? 0;
+      }
+      return Math.min(sum, 10).toFixed(1);
+    }
+
+    // MEDIA
+    let totalValor = 0;
+    let count = 0;
+    for (const a of atividades) {
+      const raw = values[cellKey(alunoId, a.id)] ?? "";
+      const num = parseNota(raw) ?? 0;
+      totalValor += num;
+      count++;
+    }
+    if (count === 0) return "0.0";
+    return (totalValor / count).toFixed(1);
+  };
+
+  const colunaFinalLabel = modoCalculo === "SOMA" ? "Total" : "Média";
+
+  return (
+    <Card className="p-0 overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12">Nº</TableHead>
+            <TableHead className="min-w-[180px]">Aluno</TableHead>
+            {atividades.map((a) => {
+              const cap = effectiveCap(modoCalculo, a);
+              return (
+                <TableHead key={a.id} className="text-center min-w-[120px]">
+                  <div className="flex flex-col items-center leading-tight">
+                    <span>{a.nome}</span>
+                    <span className="text-xs text-default-500 font-normal">
+                      Nota máxima: {cap}
+                    </span>
+                  </div>
+                </TableHead>
+              );
+            })}
+            <TableHead className="text-center w-24 bg-default-50 dark:bg-default-100/50">
+              {colunaFinalLabel}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {alunos.map((aluno, i) => (
+            <TableRow key={aluno.id}>
+              <TableCell className="text-default-600">{i + 1}</TableCell>
+              <TableCell className="font-medium">{aluno.nome}</TableCell>
+              {atividades.map((a) => {
+                const key = cellKey(aluno.id, a.id);
+                const isSaving = !!saving[key];
+                const cap = effectiveCap(modoCalculo, a);
+                return (
+                  <TableCell key={a.id} className="p-2">
+                    <div className="relative">
+                      <Input
+                        value={values[key] ?? ""}
+                        onChange={(e) => handleChange(key, e.target.value, cap)}
+                        onBlur={() => handleBlur(aluno.id, a.id, cap)}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="—"
+                        className="text-center"
+                        disabled={isSaving}
+                      />
+                      {isSaving && (
+                        <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-default-400" />
+                      )}
+                    </div>
+                  </TableCell>
+                );
+              })}
+              <TableCell className="text-center font-semibold bg-default-50 dark:bg-default-100/50">
+                {calcularResultado(aluno.id)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}

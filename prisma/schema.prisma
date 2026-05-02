@@ -1,0 +1,138 @@
+// DiárioDoProf — Prisma schema
+// docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum NivelEnsino {
+  FUNDAMENTAL
+  FUNDAMENTAL_I
+  FUNDAMENTAL_II
+  MEDIO
+}
+
+enum TurmaStatus {
+  ATIVA
+  CONCLUIDA
+}
+
+enum ModoCalculo {
+  MEDIA
+  SOMA
+}
+
+model Professor {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  nome         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  turmas     Turma[]
+  alunos     Aluno[]
+  periodos   Periodo[]
+  atividades Atividade[]
+  notas      Nota[]
+}
+
+model Turma {
+  id         String      @id @default(uuid())
+  nome       String
+  turma      String      @default("A")
+  nivel      NivelEnsino
+  serie      String
+  disciplina String
+  ano        Int
+  status     TurmaStatus @default(ATIVA)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  alunos   Aluno[]
+  periodos Periodo[]
+
+  @@index([professorId])
+}
+
+model Aluno {
+  id        String   @id @default(uuid())
+  nome      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  turmaId     String
+  turma       Turma     @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+
+  notas Nota[]
+
+  @@index([professorId])
+  @@index([turmaId])
+}
+
+model Periodo {
+  id          String      @id @default(uuid())
+  ordem       Int
+  dataInicio  DateTime?
+  dataFim     DateTime?
+  modoCalculo ModoCalculo @default(MEDIA)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  turmaId     String
+  turma       Turma     @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+
+  atividades Atividade[]
+
+  @@unique([turmaId, ordem])
+  @@index([professorId])
+  @@index([turmaId])
+}
+
+model Atividade {
+  id          String    @id @default(uuid())
+  nome        String
+  valorMaximo Float     @default(10)
+  data        DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  periodoId   String
+  periodo     Periodo   @relation(fields: [periodoId], references: [id], onDelete: Cascade)
+
+  notas Nota[]
+
+  @@index([professorId])
+  @@index([periodoId])
+}
+
+model Nota {
+  id        String   @id @default(uuid())
+  valor     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  alunoId     String
+  aluno       Aluno     @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  atividadeId String
+  atividade   Atividade @relation(fields: [atividadeId], references: [id], onDelete: Cascade)
+
+  @@unique([alunoId, atividadeId])
+  @@index([professorId])
+}

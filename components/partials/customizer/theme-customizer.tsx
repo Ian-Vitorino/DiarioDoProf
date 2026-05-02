@@ -19,7 +19,6 @@ import SelectLayout from "./select-layout";
 import SelectTheme from "./select-theme";
 import HeaderStyle from "./header-style";
 import FooterStyle from "./footer-style";
-import RtlSwitcher from "./rtl-switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import RadiusInit from "./radius";
 import { Settings } from "@/components/svg";
@@ -54,7 +53,6 @@ const ThemeCustomize = ({
           <div className=" space-y-8 mt-3">
             <SelectLayout />
             <SelectTheme />
-            <RtlSwitcher />
             <ThemeChange />
             <SidebarChange />
             <SidebarImage />

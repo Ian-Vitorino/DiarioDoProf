@@ -1,50 +1,42 @@
-
 import {
   DashBoard,
- 
 } from "@/components/svg";
 
 
 export interface MenuItemProps {
   title: string;
-  icon: any;
+  icon?: any;
   href?: string;
   child?: MenuItemProps[];
   megaMenu?: MenuItemProps[];
-  multi_menu? : MenuItemProps[]
-  nested?: MenuItemProps[]
-  onClick: () => void;
-
-  
+  multi_menu?: MenuItemProps[];
+  nested?: MenuItemProps[];
+  onClick?: () => void;
+  isHeader?: boolean;
 }
 
 export const menusConfig = {
   mainNav: [
-      {
-      title: "blank",
-      icon: DashBoard,
-      href: "/blank",
-    },
-  ],
+    { title: "Turmas", icon: DashBoard, href: "/turmas" },
+    { title: "Notas", icon: DashBoard, href: "/notas" },
+    { title: "Análise da turma", icon: DashBoard, href: "/analise-turma" },
+    { title: "Dashboard aluno", icon: DashBoard, href: "/dashboard-aluno" },
+  ] as MenuItemProps[],
   sidebarNav: {
     modern: [
-      {
-        title: "blank",
-        icon: DashBoard,
-        href: "/blank",
-      },
-    ],
+      { title: "Turmas", icon: DashBoard, href: "/turmas" },
+      { title: "Notas", icon: DashBoard, href: "/notas" },
+      { title: "Análise da turma", icon: DashBoard, href: "/analise-turma" },
+      { title: "Dashboard aluno", icon: DashBoard, href: "/dashboard-aluno" },
+    ] as MenuItemProps[],
     classic: [
-       {
-        isHeader: true,
-        title: "menu",
-      },
-      {
-        title: "blank",
-        icon: DashBoard,
-        href: "/blank",
-      },
-    ],
+      { isHeader: true, title: "Cadastros" },
+      { title: "Turmas", icon: DashBoard, href: "/turmas" },
+      { isHeader: true, title: "Dados" },
+      { title: "Notas", icon: DashBoard, href: "/notas" },
+      { title: "Análise da turma", icon: DashBoard, href: "/analise-turma" },
+      { title: "Dashboard aluno", icon: DashBoard, href: "/dashboard-aluno" },
+    ] as MenuItemProps[],
   },
 };
 

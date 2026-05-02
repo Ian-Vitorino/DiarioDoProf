@@ -5,8 +5,8 @@ export const siteConfig = {
   name: "DashTail Next js Admin Template",
   description: null,
   theme: "violet",
-  layout: "vertical",
-  // semi-box, horizontal, vertical
+  layout: "semibox",
+  // semibox, horizontal, vertical
   hideSideBar: false,
   sidebarType: "module",
   // popover, classic, module

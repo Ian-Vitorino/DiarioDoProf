@@ -2,8 +2,12 @@
 
 Documento de visão geral do projeto. Serve como ponto de partida e referência rápida para próximas conversas e iterações.
 
-> Data: 2026-04-30
-> Status: Definição de escopo (pré-implementação)
+> Data inicial: 2026-04-30
+> Status: Telas de parâmetros implementadas (turmas, alunos, períodos, atividades). Operacional (lançamento de notas, médias, boletim) ainda pendente.
+
+## Documentos relacionados
+
+- [`parametros.md`](parametros.md) — telas de cadastro implementadas, modelo de dados detalhado, server actions, multi-tenancy
 
 ---
 
@@ -96,6 +100,17 @@ Decisões que vão moldar o resto da arquitetura. Cada uma merece uma conversa d
 
 6. **Boletim/exportação**
    - Gerar PDF do boletim faz parte do MVP ou é incremento posterior?
+
+7. **Verificação de email no signup** (definido em 2026-04-30 como pendência)
+   - Decidido: **não** entra na primeira versão. Signup cria conta direto sem confirmação por email.
+   - Pendente: implementar quando tiver SMTP configurado / quando o projeto for publicado. Adiciona `Professor.emailVerifiedAt` no schema e fluxo de envio + token de confirmação.
+
+## Decisões já fechadas
+
+- **Auth (2026-04-30):** next-auth + Credentials provider (email/senha), bcrypt, sessão JWT em cookie httpOnly. Sem OAuth por enquanto.
+- **Política de senha:** mínimo 8 caracteres. Sem exigência de complexidade (maiúscula/símbolo).
+- **Pós-signup:** auto-login imediato, redireciona para o dashboard.
+- **Regra de cálculo de média:** simples (soma das notas / quantidade de notas). Sem peso, sem fórmula custom — pode ser estendido depois sem migração dolorosa.
 
 ---
 

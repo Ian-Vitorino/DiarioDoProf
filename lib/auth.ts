@@ -1,60 +1,53 @@
-import Credentials from "next-auth/providers/credentials";
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { compare } from "bcrypt";
+import { prisma } from "@/lib/prisma";
 
-import {User as UserType, user} from "@/app/api/user/data";
-import GoogleProvider from "next-auth/providers/google";
-import GithubProvider from "next-auth/providers/github";
-
-import avatar3 from "@/public/images/avatar/avatar-3.jpg";
-
-
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.AUTH_GOOGLE_ID as string,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET as string,
-    }),
-    GithubProvider({
-      clientId: process.env.AUTH_GITHUB_ID as string,
-      clientSecret: process.env.AUTH_GITHUB_SECRET as string,
-    }),
-    Credentials({
+    CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        password: { label: "Senha", type: "password" },
       },
-        async authorize(credentials) {
-             const {email, password} = credentials as {
-          email: string,
-          password: string,
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+        const professor = await prisma.professor.findUnique({
+          where: { email: credentials.email.toLowerCase().trim() },
+        });
+        if (!professor) return null;
+
+        const valid = await compare(credentials.password, professor.passwordHash);
+        if (!valid) return null;
+
+        return {
+          id: professor.id,
+          email: professor.email,
+          name: professor.nome,
         };
-          
-        const foundUser = user.find((u) => u.email === email)
-
-        if (!foundUser) {
-          return null;
-        }
-
-        const valid = password === foundUser.password  
-
-        if (!valid) {
-          
-          return null;
-        }
-
-        if (foundUser) {
-          return foundUser as any
-          
-        }
-        return null;
-      }
-      
+      },
     }),
   ],
   secret: process.env.AUTH_SECRET,
-
-  session: {
-    strategy: "jwt",
+  session: { strategy: "jwt" },
+  pages: {
+    signIn: "/login",
   },
-  debug: process.env.NODE_ENV !== "production",
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        (session.user as { id?: string }).id = token.id as string;
+      }
+      return session;
+    },
+  },
 };
